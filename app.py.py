@@ -121,7 +121,6 @@ else:
                 future_dates = model.make_future_dataframe(periods=forecast_days)
                 forecast = model.predict(future_dates)
 
-                # 4. Visualize with Plotly
                 # 4. Visualize with Custom Plotly Graph Objects
                 fig_forecast = go.Figure()
 
