@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import date, timedelta
 from prophet import Prophet
-from prophet.plot import plot_plotly
+import plotly.graph_objects as go
 
 # ---------------------------------
 # 1. Page Configuration & UI Header
@@ -122,13 +122,41 @@ else:
                 forecast = model.predict(future_dates)
 
                 # 4. Visualize with Plotly
-                fig_forecast = plot_plotly(model, forecast)
+                # 4. Visualize with Custom Plotly Graph Objects
+                fig_forecast = go.Figure()
+
+                # Add Historical Data
+                fig_forecast.add_trace(go.Scatter(
+                    x=df_prophet['ds'], y=df_prophet['y'], 
+                    name="Historical", mode="lines", line=dict(color="#1f77b4")
+                ))
+
+                # Add Forecast Line
+                fig_forecast.add_trace(go.Scatter(
+                    x=forecast['ds'], y=forecast['yhat'], 
+                    name="Prediction", mode="lines", line=dict(color="#ff7f0e")
+                ))
+
+                # Add Confidence Interval (Upper bound - invisible line)
+                fig_forecast.add_trace(go.Scatter(
+                    x=forecast['ds'], y=forecast['yhat_upper'],
+                    mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"
+                ))
+                
+                # Add Confidence Interval (Lower bound - fills space to the upper bound)
+                fig_forecast.add_trace(go.Scatter(
+                    x=forecast['ds'], y=forecast['yhat_lower'],
+                    mode="lines", line=dict(width=0), fill="tonexty", 
+                    fillcolor="rgba(255, 127, 14, 0.2)", name="Confidence Interval", hoverinfo="skip"
+                ))
+
                 fig_forecast.update_layout(
                     title=f"{forecast_ticker} Price Forecast ({forecast_days} Days)",
                     yaxis_title="Asset Price",
                     xaxis_title="",
                     hovermode="x unified"
                 )
+                
                 
                 st.plotly_chart(fig_forecast, use_container_width=True)
                 
