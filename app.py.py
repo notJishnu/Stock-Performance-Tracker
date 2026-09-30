@@ -4,6 +4,8 @@ import yfinance as yf
 import pandas as pd
 import plotly.express as px
 from datetime import date, timedelta
+from prophet import Prophet
+from prophet.plot import plot_plotly
 
 # ---------------------------------
 # 1. Page Configuration & UI Header
@@ -85,3 +87,54 @@ else:
         
         st.subheader("Raw Normalized Data")
         st.dataframe(normalized_data.tail().sort_index(ascending=False), use_container_width=True)
+
+        # ---------------------------------
+        # 5. Time-Series Forecasting
+        # ---------------------------------
+        st.divider()
+        st.subheader("Predictive Forecasting (Meta Prophet)")
+        st.markdown("Forecast future price action based on historical trends. The shaded region represents the model's confidence interval.")
+        
+        # User controls for the forecast
+        col1, col2 = st.columns(2)
+        with col1:
+            forecast_ticker = st.selectbox("Select Asset to Forecast:", selected_tickers)
+        with col2:
+            forecast_days = st.slider("Days into the future:", 30, 365, 90)
+
+        # We use a button so the model doesn't re-train every time the user clicks a filter
+        if st.button("Generate Forecast"):
+            with st.spinner(f"Training Prophet model for {forecast_ticker}..."):
+                # 1. Prepare Data for Prophet (requires 'ds' and 'y' columns)
+                # We use raw_data here to predict actual prices, not base-100 normalized data
+                df_prophet = raw_data[[forecast_ticker]].copy().reset_index()
+                df_prophet.columns = ['ds', 'y']
+                
+                # Drop any remaining NaNs to prevent model failure
+                df_prophet = df_prophet.dropna()
+
+                # 2. Initialize and Train the Model
+                model = Prophet(daily_seasonality=True)
+                model.fit(df_prophet)
+
+                # 3. Create Future Dates and Predict
+                future_dates = model.make_future_dataframe(periods=forecast_days)
+                forecast = model.predict(future_dates)
+
+                # 4. Visualize with Plotly
+                fig_forecast = plot_plotly(model, forecast)
+                fig_forecast.update_layout(
+                    title=f"{forecast_ticker} Price Forecast ({forecast_days} Days)",
+                    yaxis_title="Asset Price",
+                    xaxis_title="",
+                    hovermode="x unified"
+                )
+                
+                st.plotly_chart(fig_forecast, use_container_width=True)
+                
+                # Show the raw prediction bounds for transparency
+                st.write("Forecast Data (Upper & Lower Bounds):")
+                st.dataframe(
+                    forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(forecast_days),
+                    use_container_width=True
+                )
