@@ -6,6 +6,7 @@ import plotly.express as px
 from datetime import date, timedelta
 from prophet import Prophet
 import plotly.graph_objects as go
+import fpdf as FPDF
 
 # ---------------------------------
 # 1. Page Configuration & UI Header
@@ -165,3 +166,58 @@ else:
                     forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(forecast_days),
                     use_container_width=True
                 )
+
+# ---------------------------------
+        # 6. Automated PDF Reporting
+        # ---------------------------------
+        st.divider()
+        st.subheader("Automated Executive Summary")
+        st.markdown("Generate and download a static PDF report summarizing the current dashboard metrics for stakeholders.")
+
+        @st.cache_data
+        def create_pdf_report(tickers, start, end, final_data):
+            pdf = FPDF()
+            pdf.add_page()
+            
+            # Title
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.cell(0, 10, "Market Performance Executive Summary", ln=True, align="C")
+            
+            # Subtitle
+            pdf.set_font("Helvetica", "", 12)
+            pdf.cell(0, 10, f"Analysis Period: {start} to {end}", ln=True, align="C")
+            pdf.ln(10)
+            
+            # Body text
+            pdf.set_font("Helvetica", "", 11)
+            pdf.multi_cell(0, 7, f"This report evaluates the comparative growth of the following assets: {', '.join(tickers)}.")
+            pdf.multi_cell(0, 7, "To provide an exact percentage-growth comparison, all selected assets were normalized to a base value of 100 on the start date.")
+            pdf.ln(5)
+            
+            # Extract the last row of data for the report
+            pdf.set_font("Helvetica", "B", 12)
+            latest_date = final_data.index[0].strftime('%Y-%m-%d')
+            pdf.cell(0, 10, f"Final Normalized Values (As of {latest_date}):", ln=True)
+            
+            # Print metrics for each stock
+            pdf.set_font("Helvetica", "", 11)
+            for ticker in tickers:
+                val = final_data.iloc[0][ticker]
+                growth = val - 100
+                direction = "Up" if growth >= 0 else "Down"
+                pdf.cell(0, 7, f"- {ticker}: {val:.2f} ({direction} {abs(growth):.2f}%)", ln=True)
+                
+            # Return the PDF as raw bytes for the download button
+            return bytes(pdf.output())
+
+        # Generate the PDF in the background using the most recent data row
+        pdf_bytes = create_pdf_report(selected_tickers, start_date, end_date, normalized_data.tail(1))
+
+        # Render the download widget
+        st.download_button(
+            label="📄 Download Executive Summary (PDF)",
+            data=pdf_bytes,
+            file_name=f"market_report_{end_date}.pdf",
+            mime="application/pdf",
+            type="primary"
+        )
