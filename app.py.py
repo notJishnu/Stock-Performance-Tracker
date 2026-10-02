@@ -6,7 +6,7 @@ import plotly.express as px
 from datetime import date, timedelta
 from prophet import Prophet
 import plotly.graph_objects as go
-import fpdf as FPDF
+from fpdf import FPDF
 
 # ---------------------------------
 # 1. Page Configuration & UI Header
