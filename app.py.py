@@ -176,40 +176,39 @@ else:
 
         @st.cache_data
         def create_pdf_report(tickers, start, end, final_data):
-            pdf = FPDF()
+            pdf = FPDF(orientation="P", unit="mm", format="A4")
             pdf.add_page()
             
             # Title
-            pdf.set_font("Helvetica", "B", 16)
-            pdf.cell(0, 10, "Market Performance Executive Summary", ln=True, align="C")
+            pdf.set_font("Helvetica", style="B", size=16)
+            pdf.cell(w=0, h=10, text="Market Performance Executive Summary", new_x="LMARGIN", new_y="NEXT", align="C")
             
             # Subtitle
-            pdf.set_font("Helvetica", "", 12)
-            pdf.cell(0, 10, f"Analysis Period: {start} to {end}", ln=True, align="C")
+            pdf.set_font("Helvetica", style="", size=12)
+            pdf.cell(w=0, h=10, text=f"Analysis Period: {start} to {end}", new_x="LMARGIN", new_y="NEXT", align="C")
             pdf.ln(10)
             
             # Body text
-            pdf.set_font("Helvetica", "", 11)
-            pdf.multi_cell(0, 7, f"This report evaluates the comparative growth of the following assets: {', '.join(tickers)}.")
-            pdf.multi_cell(0, 7, "To provide an exact percentage-growth comparison, all selected assets were normalized to a base value of 100 on the start date.")
+            pdf.set_font("Helvetica", style="", size=11)
+            pdf.multi_cell(w=0, h=7, text=f"This report evaluates the comparative growth of the following assets: {', '.join(tickers)}.", new_x="LMARGIN", new_y="NEXT")
+            pdf.multi_cell(w=0, h=7, text="To provide an exact percentage-growth comparison, all selected assets were normalized to a base value of 100 on the start date.", new_x="LMARGIN", new_y="NEXT")
             pdf.ln(5)
             
             # Extract the last row of data for the report
-            pdf.set_font("Helvetica", "B", 12)
+            pdf.set_font("Helvetica", style="B", size=12)
             latest_date = final_data.index[0].strftime('%Y-%m-%d')
-            pdf.cell(0, 10, f"Final Normalized Values (As of {latest_date}):", ln=True)
+            pdf.cell(w=0, h=10, text=f"Final Normalized Values (As of {latest_date}):", new_x="LMARGIN", new_y="NEXT")
             
             # Print metrics for each stock
-            pdf.set_font("Helvetica", "", 11)
+            pdf.set_font("Helvetica", style="", size=11)
             for ticker in tickers:
                 val = final_data.iloc[0][ticker]
                 growth = val - 100
                 direction = "Up" if growth >= 0 else "Down"
-                pdf.cell(0, 7, f"- {ticker}: {val:.2f} ({direction} {abs(growth):.2f}%)", ln=True)
+                pdf.cell(w=0, h=7, text=f"- {ticker}: {val:.2f} ({direction} {abs(growth):.2f}%)", new_x="LMARGIN", new_y="NEXT")
                 
-            # Return the PDF as raw bytes for the download button
             return bytes(pdf.output())
-
+    
         # Generate the PDF in the background using the most recent data row
         pdf_bytes = create_pdf_report(selected_tickers, start_date, end_date, normalized_data.tail(1))
 
